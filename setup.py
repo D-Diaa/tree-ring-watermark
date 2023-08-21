@@ -19,9 +19,9 @@ from setuptools import find_packages, setup
 # 1. all dependencies should be listed here with their version requirements if any
 # 2. once modified, run: `make deps_table_update` to update src/tree-ring-watermark/dependency_versions_table.py
 _deps = [
-   "torch==1.13.0",
-   "transformers==4.23.1",
-   "diffusers==0.11.1",
+   "torch",
+   "transformers",
+   "diffusers",
 ]
 
 # this is a lookup table with items like:
@@ -82,7 +82,7 @@ class DepsTableUpdateCommand(Command):
             "}",
             "",
         ]
-        target = "src/tree_ring_watermark/dependency_versions_table.py"
+        target = "src/dependency_versions_table.py"
         print(f"updating {target}")
         with open(target, "w", encoding="utf-8", newline="\n") as f:
             f.write("\n".join(content))

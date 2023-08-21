@@ -1,14 +1,7 @@
 from functools import partial
-from typing import Callable, List, Optional, Union, Tuple
+from typing import Callable, Optional
 
 import torch
-from transformers import CLIPFeatureExtractor, CLIPTextModel, CLIPTokenizer
-
-from diffusers.models import AutoencoderKL, UNet2DConditionModel
-# from diffusers import StableDiffusionPipeline
-from diffusers.pipelines.stable_diffusion.safety_checker import \
-    StableDiffusionSafetyChecker
-from diffusers.schedulers import DDIMScheduler,PNDMScheduler, LMSDiscreteScheduler
 
 from modified_stable_diffusion import ModifiedStableDiffusionPipeline
 
