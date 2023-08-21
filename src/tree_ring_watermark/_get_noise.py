@@ -37,13 +37,8 @@ def _get_pattern(shape, w_pattern='ring', generator=None):
     return gt_patch
 
 
-# def get_noise(shape: Union[torch.Size, List, Tuple], model_hash: str) -> torch.Tensor:
-def get_noise(shape: Union[torch.Size, List, Tuple], generator=None) -> Tuple[
-    torch.Tensor, torch.Tensor, torch.Tensor]:
-    # for now we hard code all hyperparameters
-    w_channel = 0  # id for watermarked channel
-    w_radius = 10  # watermark radius
-    w_pattern = 'rand'  # watermark pattern
+def get_noise(shape: Union[torch.Size, List, Tuple], w_channel=0, w_radius=10, w_pattern='rand',
+              init_latents=None, generator=None) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
 
     # get watermark key and mask
     np_mask = _circle_mask(shape[-1], r=w_radius)
@@ -57,7 +52,8 @@ def get_noise(shape: Union[torch.Size, List, Tuple], generator=None) -> Tuple[
     assert len(shape) == 4, f"Make sure you pass a `shape` tuple/list of length 4 not {len(shape)}"
     assert shape[0] == 1, f"For now only batch_size=1 is supported, not {shape[0]}."
 
-    init_latents = torch.randn(shape, generator=generator)
+    if init_latents is None or init_latents.shape != shape:
+        init_latents = torch.randn(shape, generator=generator)
 
     init_latents_fft = torch.fft.fftshift(torch.fft.fft2(init_latents), dim=(-1, -2))
     init_latents_fft[w_mask] = w_key[w_mask].clone()
