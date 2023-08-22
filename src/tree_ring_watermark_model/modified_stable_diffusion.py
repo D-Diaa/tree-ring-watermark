@@ -1,4 +1,3 @@
-
 from typing import Callable, List, Optional, Union, Any, Dict
 import copy
 import numpy as np
@@ -19,44 +18,44 @@ class ModifiedStableDiffusionPipelineOutput(BaseOutput):
 
 class ModifiedStableDiffusionPipeline(StableDiffusionPipeline):
     def __init__(self,
-        vae,
-        text_encoder,
-        tokenizer,
-        unet,
-        scheduler,
-        safety_checker,
-        feature_extractor,
-        requires_safety_checker: bool = True,
-    ):
+                 vae,
+                 text_encoder,
+                 tokenizer,
+                 unet,
+                 scheduler,
+                 safety_checker,
+                 feature_extractor,
+                 requires_safety_checker: bool = True,
+                 ):
         super(ModifiedStableDiffusionPipeline, self).__init__(vae,
-                text_encoder,
-                tokenizer,
-                unet,
-                scheduler,
-                safety_checker,
-                feature_extractor,
-                requires_safety_checker)
+                                                              text_encoder,
+                                                              tokenizer,
+                                                              unet,
+                                                              scheduler,
+                                                              safety_checker,
+                                                              feature_extractor,
+                                                              requires_safety_checker)
 
     @torch.no_grad()
     def __call__(
-        self,
-        prompt: Union[str, List[str]],
-        height: Optional[int] = None,
-        width: Optional[int] = None,
-        num_inference_steps: int = 50,
-        guidance_scale: float = 7.5,
-        negative_prompt: Optional[Union[str, List[str]]] = None,
-        num_images_per_prompt: Optional[int] = 1,
-        eta: float = 0.0,
-        generator: Optional[Union[torch.Generator, List[torch.Generator]]] = None,
-        latents: Optional[torch.FloatTensor] = None,
-        output_type: Optional[str] = "pil",
-        return_dict: bool = True,
-        callback: Optional[Callable[[int, int, torch.FloatTensor], None]] = None,
-        callback_steps: Optional[int] = 1,
-        watermarking_gamma: float = None,
-        watermarking_delta: float = None,
-        watermarking_mask: Optional[torch.BoolTensor] = None,
+            self,
+            prompt: Union[str, List[str]],
+            height: Optional[int] = None,
+            width: Optional[int] = None,
+            num_inference_steps: int = 50,
+            guidance_scale: float = 7.5,
+            negative_prompt: Optional[Union[str, List[str]]] = None,
+            num_images_per_prompt: Optional[int] = 1,
+            eta: float = 0.0,
+            generator: Optional[Union[torch.Generator, List[torch.Generator]]] = None,
+            latents: Optional[torch.FloatTensor] = None,
+            output_type: Optional[str] = "pil",
+            return_dict: bool = True,
+            callback: Optional[Callable[[int, int, torch.FloatTensor], None]] = None,
+            callback_steps: Optional[int] = 1,
+            watermarking_gamma: float = None,
+            watermarking_delta: float = None,
+            watermarking_mask: Optional[torch.BoolTensor] = None,
     ):
         r"""
         Function invoked when calling the pipeline for generation.
@@ -188,27 +187,24 @@ class ModifiedStableDiffusionPipeline(StableDiffusionPipeline):
                     if callback is not None and i % callback_steps == 0:
                         callback(i, t, latents)
 
-        # 8. Post-processing
-        image = self.decode_latents(latents)
+        if not output_type == "latent":
+            image = self.vae.decode(latents / self.vae.config.scaling_factor, return_dict=False)[0]
+        else:
+            image = latents
 
-        # 9. Run safety checker
-        image, has_nsfw_concept = self.run_safety_checker(image, device, text_embeddings.dtype)
+        image = self.image_processor.postprocess(image, output_type=output_type)
 
-        # 10. Convert to PIL
-        if output_type == "pil":
-            image = self.numpy_to_pil(image)
+        # Offload last model to CPU
+        if hasattr(self, "final_offload_hook") and self.final_offload_hook is not None:
+            self.final_offload_hook.offload()
 
-        if not return_dict:
-            return (image, has_nsfw_concept)
-
-        return ModifiedStableDiffusionPipelineOutput(images=image, nsfw_content_detected=has_nsfw_concept, init_latents=init_latents)
-
+        return image
 
     @torch.inference_mode()
     def decode_image(self, latents: torch.FloatTensor, **kwargs):
         scaled_latents = 1 / 0.18215 * latents
         image = [
-            self.vae.decode(scaled_latents[i : i + 1]).sample for i in range(len(latents))
+            self.vae.decode(scaled_latents[i: i + 1]).sample for i in range(len(latents))
         ]
         image = torch.cat(image, dim=0)
         return image
