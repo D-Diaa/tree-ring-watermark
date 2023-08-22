@@ -3,8 +3,8 @@ import torch
 
 from diffusers import DPMSolverMultistepScheduler, StableDiffusionPipeline, DiffusionPipeline, DDIMScheduler
 
-from tree_ring_watermark._get_noise import get_noise
-from tree_ring_watermark._detect import detect
+from _get_noise import get_noise
+from _detect import detect
 
 model_id = 'runwayml/stable-diffusion-v1-5'
 
