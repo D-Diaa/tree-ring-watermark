@@ -3,7 +3,7 @@ from typing import Callable, Optional
 
 import torch
 
-from modified_stable_diffusion import ModifiedStableDiffusionPipeline
+from .modified_stable_diffusion import ModifiedStableDiffusionPipeline
 
 
 ### credit to: https://github.com/cccntu/efficient-prompt-to-prompt
