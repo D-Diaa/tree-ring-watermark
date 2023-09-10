@@ -11,13 +11,14 @@ from .modified_stable_diffusion import ModifiedStableDiffusionPipeline
 def backward_ddim(x_t, alpha_t, alpha_tm1, eps_xt):
     """ from noise to image"""
     return (
-        alpha_tm1**0.5
-        * (
-            (alpha_t**-0.5 - alpha_tm1**-0.5) * x_t
-            + ((1 / alpha_tm1 - 1) ** 0.5 - (1 / alpha_t - 1) ** 0.5) * eps_xt
-        )
-        + x_t
+            alpha_tm1 ** 0.5
+            * (
+                    (alpha_t ** -0.5 - alpha_tm1 ** -0.5) * x_t
+                    + ((1 / alpha_tm1 - 1) ** 0.5 - (1 / alpha_t - 1) ** 0.5) * eps_xt
+            )
+            + x_t
     )
+
 
 def forward_ddim(x_t, alpha_t, alpha_tp1, eps_xt):
     """ from image to noise, it's the same as backward_ddim"""
@@ -26,31 +27,30 @@ def forward_ddim(x_t, alpha_t, alpha_tp1, eps_xt):
 
 class InversableStableDiffusionPipeline(ModifiedStableDiffusionPipeline):
     def __init__(self,
-        vae,
-        text_encoder,
-        tokenizer,
-        unet,
-        scheduler,
-        safety_checker,
-        feature_extractor,
-        requires_safety_checker: bool = True,
-    ):
+                 vae,
+                 text_encoder,
+                 tokenizer,
+                 unet,
+                 scheduler,
+                 safety_checker,
+                 feature_extractor,
+                 requires_safety_checker: bool = True,
+                 ):
         super(InversableStableDiffusionPipeline, self).__init__(vae,
-                text_encoder,
-                tokenizer,
-                unet,
-                scheduler,
-                safety_checker,
-                feature_extractor,
-                requires_safety_checker)
+                                                                text_encoder,
+                                                                tokenizer,
+                                                                unet,
+                                                                scheduler,
+                                                                safety_checker,
+                                                                feature_extractor,
+                                                                requires_safety_checker)
 
         self.forward_diffusion = partial(self.backward_diffusion, reverse_process=True)
-    
-    def get_random_latents(self, latents=None, height=512, width=512, generator=None):
+
+    def get_random_latents(self, batch_size=1, latents=None, height=512, width=512, generator=None):
         height = height or self.unet.config.sample_size * self.vae_scale_factor
         width = width or self.unet.config.sample_size * self.vae_scale_factor
 
-        batch_size = 1
         device = self._execution_device
 
         num_channels_latents = self.unet.in_channels
@@ -79,7 +79,7 @@ class InversableStableDiffusionPipeline(ModifiedStableDiffusionPipeline):
         ).input_ids
         text_embeddings = self.text_encoder(text_input_ids.to(self.device))[0]
         return text_embeddings
-    
+
     @torch.inference_mode()
     def get_image_latents(self, image, sample=True, rng_generator=None):
         encoding_dist = self.vae.encode(image).latent_dist
@@ -90,21 +90,20 @@ class InversableStableDiffusionPipeline(ModifiedStableDiffusionPipeline):
         latents = encoding * 0.18215
         return latents
 
-
     @torch.inference_mode()
     def backward_diffusion(
-        self,
-        use_old_emb_i=25,
-        text_embeddings=None,
-        old_text_embeddings=None,
-        new_text_embeddings=None,
-        latents: Optional[torch.FloatTensor] = None,
-        num_inference_steps: int = 50,
-        guidance_scale: float = 7.5,
-        callback: Optional[Callable[[int, int, torch.FloatTensor], None]] = None,
-        callback_steps: Optional[int] = 1,
-        reverse_process: True = False,
-        **kwargs,
+            self,
+            use_old_emb_i=25,
+            text_embeddings=None,
+            old_text_embeddings=None,
+            new_text_embeddings=None,
+            latents: Optional[torch.FloatTensor] = None,
+            num_inference_steps: int = 50,
+            guidance_scale: float = 7.5,
+            callback: Optional[Callable[[int, int, torch.FloatTensor], None]] = None,
+            callback_steps: Optional[int] = 1,
+            reverse_process: True = False,
+            **kwargs,
     ):
         """ Generate image from text prompt and latents
         """
@@ -125,8 +124,8 @@ class InversableStableDiffusionPipeline(ModifiedStableDiffusionPipeline):
         else:
             prompt_to_prompt = False
 
-
-        for i, t in enumerate(self.progress_bar(timesteps_tensor if not reverse_process else reversed(timesteps_tensor))):
+        for i, t in enumerate(
+                self.progress_bar(timesteps_tensor if not reverse_process else reversed(timesteps_tensor))):
             if prompt_to_prompt:
                 if i < use_old_emb_i:
                     text_embeddings = old_text_embeddings
@@ -148,18 +147,18 @@ class InversableStableDiffusionPipeline(ModifiedStableDiffusionPipeline):
             if do_classifier_free_guidance:
                 noise_pred_uncond, noise_pred_text = noise_pred.chunk(2)
                 noise_pred = noise_pred_uncond + guidance_scale * (
-                    noise_pred_text - noise_pred_uncond
+                        noise_pred_text - noise_pred_uncond
                 )
 
             prev_timestep = (
-                t
-                - self.scheduler.config.num_train_timesteps
-                // self.scheduler.num_inference_steps
+                    t
+                    - self.scheduler.config.num_train_timesteps
+                    // self.scheduler.num_inference_steps
             )
             # call the callback, if provided
             if callback is not None and i % callback_steps == 0:
                 callback(i, t, latents)
-            
+
             # ddim 
             alpha_prod_t = self.scheduler.alphas_cumprod[t]
             alpha_prod_t_prev = (
@@ -177,12 +176,11 @@ class InversableStableDiffusionPipeline(ModifiedStableDiffusionPipeline):
             )
         return latents
 
-    
     @torch.inference_mode()
     def decode_image(self, latents: torch.FloatTensor, **kwargs):
         scaled_latents = 1 / 0.18215 * latents
         image = [
-            self.vae.decode(scaled_latents[i : i + 1]).sample for i in range(len(latents))
+            self.vae.decode(scaled_latents[i: i + 1]).sample for i in range(len(latents))
         ]
         image = torch.cat(image, dim=0)
         return image

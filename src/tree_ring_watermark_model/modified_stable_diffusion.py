@@ -148,8 +148,6 @@ class ModifiedStableDiffusionPipeline(StableDiffusionPipeline):
             latents,
         )
 
-        init_latents = copy.deepcopy(latents)
-
         # watermarking mask
         if watermarking_gamma is not None:
             watermarking_mask = torch.rand(latents.shape, device=device) < watermarking_gamma
