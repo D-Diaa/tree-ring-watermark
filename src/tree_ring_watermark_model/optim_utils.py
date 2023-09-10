@@ -150,7 +150,6 @@ def get_watermarking_mask(init_latents_w, args, device):
 
 
 def get_watermarking_pattern(pipe, args, device, shape=None):
-    set_random_seed(args.w_seed)
     if shape is not None:
         gt_init = torch.randn(*shape, device=device)
     else:
